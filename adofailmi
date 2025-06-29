@@ -1,0 +1,674 @@
+#!/bin/bash
+# to do:
+# adofailmi --installumm: FINISHED
+# * check distro and use the right package manager
+# * check for mono and install it if its not found
+# * ask where to place directory with umm
+# * install umm and unzip it 
+# * check currently used shell and create an alias for launching umm
+# * create symlink for accessing the adofai folder
+# * automatically launch umm and tell the user how to finish installation in the program
+
+# adofailmi --installmods: FINISHED
+# * check distro and use the right package manager
+# * check for unzip is and install them if they're not found
+# * ask where to place directory with the mods in .zip
+# * show a list of mods and ask user what mods to install
+# * download the mods selected by the user in the directory
+# * unzip them and put them in the game
+
+# adofailmi --uninstall:
+# - no plan rn lol
+
+check_umm () {
+    if find ~ | grep "UnityModManager.exe"; then
+        echo "UMM found, continuing..."
+    else
+        echo "[!] UMM is not installed!"
+        echo "Run 'adofailmi --installumm' to install"
+        exit 1
+    fi
+}
+
+check_adofai () {
+    echo "Checking if Steam and ADOFAI are installed..."
+
+    if command -v steam >/dev/null 2>&1; then
+        echo "Steam found, continuing..."
+        if find $HOME -type d | grep "A Dance of Fire and Ice"; then
+            adofai_exists=true
+            echo "ADOFAI Game directory found, continuing..."
+        else
+            adofai_exists=false
+            echo "[!] ADOFAI Game directory was not found"
+            echo "Symlink linking to adofai will not be created!"
+            read -rp $'\nPress Enter to continue...'
+        fi
+    else
+        adofai_exists=false
+        echo "[!] Steam is NOT installed"
+        echo "Symlink linking to adofai will not be created!"
+        read -rp $'\nPress Enter to continue...'
+    fi
+}
+
+check_dep () {
+        if [ "$pkgmanager" != "manual" ]; then
+        echo "Checking OS..."
+        check_distro
+        echo "Checking if dependencies are installed..."
+
+        else
+            adofai_exists=false
+            echo "[!] Steam is NOT installed"
+            echo "Symlink linking to adofai will not be created!"
+            read -rp $'\nPress Enter to continue...'
+        fi
+
+        if [ "$pkgmanager" = "apt" ]; then
+
+            if dpkg -l | grep -q whiptail; then
+                echo "Whiptail found, continuing.."
+            else
+                echo "Whiptail not found! Installing Whiptail..."
+                echo "Running APT with sudo!"
+                sudo apt install -y whiptail
+            fi
+
+            if dpkg -l | grep -q wget; then
+                echo "Wget found, continuing.."
+            else
+                echo "Wget not found! Installing Wget..."
+                echo "Running APT with sudo!"
+                sudo apt install -y wget
+            fi
+
+            if dpkg -l | grep -q unzip; then
+                echo "Unzip found, continuing.."
+            else
+                echo "Unzip not found! Installing Unzip..."
+                echo "Running APT with sudo!"
+                sudo apt install -y unzip
+                fi
+
+            if dpkg -l | grep -q mono-complete; then
+                echo "Mono found, continuing.."
+            else
+                echo "Mono not found! Installing Mono..."
+                echo "Running APT with sudo!"
+                sudo apt install -y mono-complete
+                fi
+
+        elif [ "$pkgmanager" = "dnf" ]; then
+
+            if dnf list installed | grep whiptail; then
+                echo "Whiptail found, continuing.."
+            else
+                echo "Whiptail not found! Installing Newt (includes whiptail)..."
+                echo "Running DNF with sudo!"
+                sudo dnf install -y newt
+            fi
+
+            if dnf list installed | grep wget; then
+                echo "Wget found, continuing.."
+            else
+                echo "Wget not found! Installing Wget..."
+                echo "Running DNF with sudo!"
+                sudo dnf install -y wget
+            fi
+
+            if dnf list installed | grep unzip; then
+                echo "Unzip found, continuing.."
+            else
+                echo "Unzip not found! Installing Unzip..."
+                echo "Running DNF with sudo!"
+                sudo dnf install -y unzip
+                fi
+
+            if dnf list installed | grep mono-complete; then
+                echo "Mono found, continuing.."
+            else
+                echo "Mono not found! Installing Mono..."
+                echo "Running DNF with sudo!"
+                sudo dnf install -y mono-complete
+                fi
+
+        elif [ "$pkgmanager" = "pacman" ]; then
+
+            if pacman -Q libnewt &>/dev/null; then
+                echo "Whiptail found, continuing.."
+            else
+                echo "Whiptail not found! Installing Libnewt (includes whiptail)..."
+                echo "Running Pacman with sudo!"
+                sudo pacman -S --noconfirm libnewt
+            fi
+
+            if pacman -Q wget &>/dev/null; then
+                echo "Wget found, continuing.."
+            else
+                echo "Wget not found! Installing Wget..."
+                echo "Running Pacman with sudo!"
+                sudo pacman -S --noconfirm wget
+            fi
+
+            if pacman -Q unzip &>/dev/null; then
+                echo "Unzip found, continuing.."
+            else
+                echo "Unzip not found! Installing Unzip..."
+                echo "Running Pacman with sudo!"
+                sudo pacman -S --noconfirm unzip
+                fi
+
+            if pacman -Q mono &>/dev/null; then
+                echo "Mono found, continuing.."
+            else
+                echo "Mono not found! Installing Mono..."
+                echo "Running Pacman with sudo!"
+                sudo pacman -S --noconfirm mono
+            fi
+
+        elif [ "$pkgmanager" = "zypper" ]; then
+
+            if zypper se -i whiptail &>/dev/null; then
+                echo "Whiptail found, continuing.."
+            else
+                echo "Whiptail not found! Installing Whiptail..."
+                echo "Running Zypper with sudo!"
+                sudo zypper install -y whiptail
+            fi
+
+            if zypper se -i unzip &>/dev/null; then
+                echo "Wget found, continuing.."
+            else
+                echo "Wget not found! Installing Wget..."
+                echo "Running Zypper with sudo!"
+                sudo zypper install -y wget
+            fi
+
+            if zypper se -i unzip &>/dev/null; then
+                echo "Unzip found, continuing.."
+            else
+                echo "Unzip not found! Installing Unzip..."
+                echo "Running Pacman with sudo! Enter your password"
+                sudo zypper install -y unzip
+            fi
+
+            if zypper se -i mono-complete &>/dev/null; then
+                echo "Mono found, continuing.."
+            else
+                echo "Mono not found! Installing Mono..."
+                echo "Running Zypper with sudo! Enter your password"
+                sudo zypper install -y mono-complete
+            fi
+
+        elif [ "$pkgmanager" = "xbps" ]; then
+
+            if xbps-query -l | grep whiptail; then
+                echo "Whiptail found, continuing.."
+            else
+                echo "Whiptail not found! Installing Newt (includes whiptail)..."
+                echo "Running XBPS with sudo!"
+                sudo xbps-install -y newt
+            fi
+
+            if xbps-query -l | grep wget; then
+                echo "Wget found, continuing.."
+            else
+                echo "Wget not found! Installing Wget..."
+                echo "Running XBPS with sudo!"
+                sudo xbps-install -y wget
+            fi
+
+            if xbps-query -l | grep unzip; then
+                echo "Unzip found, continuing.."
+            else
+                echo "Unzip not found! Installing Unzip..."
+                echo "Running XBPS with sudo!"
+                sudo xbps-install -y unzip
+            fi
+
+            if xbps-query -l | grep mono; then
+                echo "Mono found, continuing.."
+            else
+                echo "Mono not found! Installing Mono..."
+                echo "Running XBPS with sudo!"
+                sudo xbps-install -y mono
+            fi
+
+        elif [ "$pkgmanager" = "emerge" ]; then
+        echo "Checking if gentoolkit is installed (for checking packages)"
+        if qlist -I gentoolkit &>/dev/null; then
+            echo "Gentoolkit installed, continuing.."
+
+                if equery list dev-libs/newt; then
+                    echo "Whiptail found, continuing.."
+                else
+                    echo "Whiptail not found! Installing Newt (includes whiptail)..."
+                    echo "Running Emerge with sudo!"
+                    sudo emerge dev-libs/newt
+                fi
+
+                if equery list net-misc/wget; then
+                    echo "Wget found, continuing.."
+                else
+                    echo "Wget not found! Installing Wget..."
+                    echo "Running Emerge with sudo!"
+                    sudo emerge net-misc/wget
+                fi
+
+                if equery list app-arch/unzip &>/dev/null; then
+                    echo "Unzip found, continuing.."
+                else
+                    echo "Unzip not found! Installing Unzip..."
+                    echo "Running Emerge with sudo!"
+                    sudo emerge app-arch/unzip
+                fi
+
+                if equery list dev-lang/mono &>/dev/null; then
+                    echo "Mono found"
+                else
+                    echo "Mono not found! Installing Mono..."
+                    echo "Running Emerge with sudo!"
+                    sudo emerge dev-lang/mono
+                fi
+            else
+                echo "Gentoolkit not found! Installing Gentoolkit..."
+                echo "Running Emerge with sudo! Enter your password"
+                sudo emerge app-portage/gentoolkit
+                echo "Gentoolkit installed, checking if mono is installed.."
+
+                if equery list dev-libs/newt; then
+                    echo "Whiptail found, continuing.."
+                else
+                    echo "Whiptail not found! Installing Newt (includes whiptail)..."
+                    echo "Running Emerge with sudo!"
+                    sudo emerge dev-libs/newt
+                fi
+
+                if xbps-query -l | grep wget; then
+                    echo "Wget found, continuing.."
+                else
+                    echo "Wget not found! Installing Wget..."
+                    echo "Running Emerge with sudo!"
+                    sudo emerge net-misc/wget
+                fi
+
+                if xbps-query -l | grep unzip; then
+                    echo "Unzip found, continuing.."
+                else
+                    echo "Unzip not found! Installing Unzip..."
+                    echo "Running Emerge with sudo!"
+                    sudo emerge app-arch/unzip
+                fi
+
+                if equery list dev-lang/mono &>/dev/null; then
+                    echo "Mono found"
+                else
+                    echo "Mono not found! Installing Mono..."
+                    echo "Running Emerge with sudo!"
+                    sudo emerge dev-lang/mono
+                fi
+            fi
+        fi
+}
+
+check_distro () {
+    distro=$(grep '^ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+    distro_otherid=$(grep '^ID_LIKE=' /etc/os-release | cut -d= -f2 | tr -d '"')
+    if [ "$distro" = "debian" ] || [ "$distro" = "ubuntu" ] || [ "$distro" = "linuxmint" ] || [ "$distro" = "pop" ] || [ "$distro" = "elementary" ] || [ "$distro" = "zorin" ] || [ "$distro_otherid" = "ubuntu" ] || [ "$distro_otherid" = "debian" ]; then
+        pkgmanager="apt"
+        echo "Debian/Debian based distro detected. Using APT"
+    elif [ "$distro" = "fedora" ] || [ "$distro" = "centos" ] || [ "$distro" = "rocky" ] || [ "$distro" = "almalinux" ] || [ "$distro" = "rhel" ] || [ "$distro_otherid" = "fedora" ] || [ "$distro_otherid" = "rhel" ]; then
+        pkgmanager="dnf"
+        echo "RHEL/RHEL based distro detected. Using DNF"
+    elif [ "$distro" = "arch" ] || [ "$distro" = "manjaro" ] || [ "$distro" = "garuda" ] || [ "$distro_otherid" = "arch" ]; then
+        pkgmanager="pacman"
+        echo "Arch/Arch based distro detected. Using Pacman"
+    elif [ "$distro" = "opensuse-tumbleweed" ] || [ "$distro_otherid" = "opensuse-tumbleweed" ] || [ "$distro" = "opensuse-leap" ] || [ "$distro_otherid" = "opensuse-leap" ]; then
+        pkgmanager="zypper"
+        echo "OpenSuse/OpenSuse based distro detected. Using Zypper"
+    elif [ "$distro" = "void" ] || [ "$distro_otherid" = "void" ]; then
+        pkgmanager="xbps"
+        echo "Void linux detected. Using XBPS"
+    elif [ "$distro" = "gentoo" ] || [ "$distro_otherid" = "gentoo" ]; then
+        pkgmanager="emerge"
+        echo "Oh.. Getnoo? Alright have fun waiting for mono to compile lol. Using Emerge"
+    elif [ "$distro" = "nixos" ]; then
+        echo "[!] NixOS was detected"
+        echo "Installing Mono reqires changing the NixOS configuration file"
+        echo "Because of that, this script will not install those packages"
+        read -rp $'\nPress Enter to continue...'
+        
+    else
+        echo "[!] This distro ($distro) is not supported by adofailmi."
+        echo "You can try installing required dependencies manually for your distribution:"
+        echo "- Whiptail (Newt, Libnewt on some linux distros)"
+        echo "- Wget"
+        echo "- Unzip"
+        echo "- Mono"
+        echo "If you do, enter 'Continue' to continue"
+        echo "Entering anything else will end the installation"
+        read -p "-> " checkdistro_input
+
+        if [ "$checkdistro_input" = "Continue" ]; then
+            echo "Continuing installation..."
+            pkgmanager="manual"
+        else
+            echo "Stopping installation..."
+            pkgmanager=""
+            exit 1
+        fi
+    fi
+}
+
+if [ "$1" = "--installumm" ]; then
+    echo "[!] Before running this script, updating your system (especially if its rolling release) is recommended"
+    read -rp $'Press Enter to continue...'
+    check_adofai
+    if [ "$2" = "-s" ]; then
+        echo "Skipping dependency check..."
+    else
+        check_dep
+    fi
+    ummdir="$(whiptail --title "UMM location" --inputbox "Enter a path of a folder where UMM is gonna be located ~/..." 10 30 3>&1 1>&2 2>&3)"
+    echo "Creating directory: ~/$ummdir"
+    if [ -d "$HOME/$ummdir" ]; then
+        echo "Directory exists, skipping..."
+    else
+        mkdir $HOME/$ummdir
+    fi
+    cd $HOME/$ummdir
+    echo "Downloading UMM..."
+    wget http://adof.ai/umm
+    echo "Unzipping UMM..."
+    unzip umm
+    echo "Removing UMM zip... (since its not necessary anymore)"
+    rm $HOME/$ummdir/umm
+    usershell=$(basename "$SHELL")
+    echo "Creating an alias (for launching umm)"
+    if [ "$usershell" = "bash" ]; then
+        echo "Bash detected"
+        echo "alias umm='mono $HOME/$ummdir/UnityModManagerInstaller/UnityModManager.exe'" >> "$HOME/.bashrc"
+        source $HOME/.bashrc
+        echo "Alias created!"
+    elif [ "$usershell" = "zsh" ]; then
+        echo "Zsh detected"
+        echo "alias umm='mono $HOME/$ummdir/UnityModManagerInstaller/UnityModManager.exe'" >> "$HOME/.zshrc"
+        echo "Alias created!"
+    elif [ "$usershell" = "fish" ]; then
+        echo "Fish detected"
+        echo "alias umm 'mono \$HOME/$ummdir/UnityModManagerInstaller/UnityModManager.exe'" >> "$HOME/.config/fish/config.fish"
+        echo "Alias created!"
+    else
+        echo "Unrecognizable shell, skipping..."
+    fi
+
+    echo "Creating ADOFAI Symlink (for accesing the game's directory through umm)"
+    if [ -d "$HOME/.steam/debian-installation/steamapps/common" ]; then
+        debiansteampath=true
+    elif [ -d "$HOME/.local/share/Steam/steamapps/common" ]; then
+        debiansteampath=false
+    fi
+
+    if [ "$debiansteampath" = true ]; then
+    echo "Using Debian steam path"
+    else 
+    echo "Using normal steam path"
+    fi
+
+    if [ "$adofai_exists" == true ]; then
+        if [ "$debiansteampath" = true ]; then
+            ln -s "$HOME/.steam/debian-installation/steamapps/common/A Dance of Fire and Ice/" ~/
+        elif [ "$debiansteampath" = false ]; then
+            ln -s "$HOME/.local/share/Steam/steamapps/common/A Dance of Fire and Ice/" ~/
+        fi
+    fi
+
+    clear
+    echo "Done!"
+    echo "To finish the installation, launch UMM by typing 'umm'"
+    echo "(on zsh and fish, you need to restart your terminal to run umm)"
+    echo "Select Game: A Dance of Fire and Ice"
+    echo "Select Folder: Personal > A Dance of Fire and Ice"
+    echo "Click install, and you should be good to go!"
+    echo "[!] Important things to keep in mind:"
+    echo "- ADOFAI will crash a bit more (no fix for that atm)"
+    echo "- Not every mod is supported, JipperResourcePack (mainly the keyviewer), TUFHelper and LineKeyviewer"
+    echo "  2 work but have font issues, LineKeyviewer just refuses to load, but most mods should work fine"
+    echo "- ADOFAI on Linux uses Fmod by default, therefore installing Fmod isn't needed"
+    
+elif [ "$1" = "--installmods" ]; then
+    check_umm
+    check_dep_and_adofai
+    mods_select=$(whiptail --title "ADOFAI Mod installer" --checklist \
+    "Select mods to automatically install, if you want to know more about a mod you can use 'adofailmi --modinfo <mod>', to cancel the installation, press esc" 20 78 10 \
+    "AdofaiTweaks" "(Recommended)" ON \
+    "KeyboardChatterBlocker" "(Recommended)" ON \
+    "Keyviewer" "(Recommended)" ON \
+    "Overlayer" "" OFF \
+    "Overlayer.Scripting" "" OFF \
+    "EnhancedEffectRemover" "" OFF \
+    "BetterCallibration" "" OFF \
+    "YoutubeStream" "" OFF \
+    "Together" "" OFF 3>&1 1>&2 2>&3)
+
+    if [ $? -ne 0 ]; then
+        echo "Mod installation canceled."
+        exit 1
+    fi
+
+    modsdir="$(whiptail --title "Mods location" --inputbox "Enter a path of a directory where the mods are going to be downloaded ~/..." 10 30 3>&1 1>&2 2>&3)"
+    echo "Creating directory: ~/$modsdir"
+    if [ -d "$HOME/$modsdir" ]; then
+        echo "Directory exists, skipping..."
+    else
+        mkdir $HOME/$modsdir
+    fi
+    cd $HOME/$modsdir
+
+    if echo "$modsdir" | grep -q '"AdofaiTweaks"'; then
+    echo "Downloading AdofaiTweaks..."
+    wget -O AdofaiTweaks.zip "https://github.com/PizzaLovers007/AdofaiTweaks/releases/download/v2.7.3/AdofaiTweaks-2.7.3.zip"
+    echo "Unzipping AdofaiTweaks..."
+    unzip AdofaiTweaks.zip
+    echo "AdofaiTweaks Downloaded"
+    fi
+
+    if echo "$modsdir" | grep -q '"KeyboardChatterBlocker"'; then
+    echo "Downloading KeyboardChatterBlocker..."
+    wget -O KeyboardChatterBlocker.zip "https://fixcdn.hyonsu.com/attachments/886661471533162526/1239183582975627304/KeyboardChatterBlocker_v0.0.9.zip"
+    echo "Unzipping KeyboardChatterBlocker..."
+    unzip KeyboardChatterBlocker.zip
+    echo "KeyboardChatterBlocker Downloaded"
+    fi
+
+    if echo "$modsdir" | grep -q '"Keyviewer"'; then
+    echo "Downloading Keyviewer..."
+    wget -O Keyviewer.zip "https://fixcdn.hyonsu.com/attachments/886661471533162526/1290564417020366868/KeyViewer.zip"
+    echo "Unzipping Keyviewer..."
+    unzip Keyviewer.zip -d "${PWD}/Keyviewer"
+    echo "Keyviewer Downloaded"
+    fi
+
+    if echo "$modsdir" | grep -q '"Overlayer"'; then
+    echo "Downloading Overlayer..."
+    wget -O Overlayer.zip "https://github.com/square3ang/Overlayer/releases/download/3.19.1/Overlayer.zip"
+    echo "Unzipping Keyviewer..."
+    unzip Overlayer.zip -d "${PWD}/Overlayer"
+    echo "Overlayer Downloaded"
+    fi
+
+    if echo "$modsdir" | grep -q '"Overlayer.Scripting"'; then
+    echo "Downloading Overlayer.Scripting..."
+    wget -O Overlayer.Scripting.zip "https://fixcdn.hyonsu.com/attachments/886661471533162526/1367374829623181442/Overlayer.Scripting.zip"
+    echo "Unzipping Overlayer.Scripting..."
+    unzip Overlayer.Scripting.zip -d "${PWD}/Overlayer.Scripting"
+    echo "Overlayer.Scripting Downloaded"
+    fi
+
+    if echo "$modsdir" | grep -q '"EnhancedEffectRemover"'; then
+    echo "Downloading EnhancedEffectRemover..."
+    wget -O EnhancedEffectRemover.zip "https://fixcdn.hyonsu.com/attachments/886661471533162526/1279566899109433385/EnhancedEffectRemover_1.6.1.zip"
+    echo "Unzipping EnhancedEffectRemover..."
+    unzip EnhancedEffectRemover.zip
+    echo "EnhancedEffectRemover Downloaded"
+    fi
+
+    if echo "$modsdir" | grep -q '"BetterCallibration"'; then
+    echo "Downloading BetterCallibration..."
+    wget -O BetterCallibration.zip "https://github.com/Jongye0l/BetterCalibration/releases/download/v1.1.3/BetterCalibration.zip"
+    echo "Unzipping BetterCallibration..."
+    unzip BetterCallibration.zip -d "${PWD}/BetterCallibration"
+    echo "BetterCallibration Downloaded"
+    fi
+
+    if echo "$modsdir" | grep -q '"YoutubeStream"'; then
+    echo "Downloading YoutubeStream..."
+    wget -O YoutubeStream.zip "https://fixcdn.hyonsu.com/attachments/886661471533162526/1343622558813130855/YouTubeStream-1.0.3.zip"
+    echo "Unzipping YoutubeStream..."
+    unzip YoutubeStream.zip -d "${PWD}/YoutubeStream"
+    echo "YoutubeStream Downloaded"
+    fi
+
+    if echo "$modsdir" | grep -q '"Together"'; then
+    echo "Downloading Together..."
+    wget -O Together.zip "https://fixcdn.hyonsu.com/attachments/886661471533162526/1230186577997725768/TogetherBootstrap_v1.5.5.zip"
+    echo "Unzipping Together..."
+    unzip Together.zip
+    echo "Together Downloaded"
+    fi
+
+    echo "Installing Mods..."
+    if [ -d "$HOME/.steam/debian-installation/steamapps/common" ]; then
+        debiansteampath=true
+    elif [ -d "$HOME/.local/share/Steam/steamapps/common" ]; then
+        debiansteampath=false
+    fi
+
+    if [ "$debiansteampath" = true ]; then
+    echo "Using Debian steam path"
+    else 
+    echo "Using normal steam path"
+    fi
+
+    if [ "$adofai_exists" == true ]; then
+        if [ "$debiansteampath" = true ]; then
+            mv */ "$HOME/.steam/debian-installation/steamapps/common/A Dance of Fire and Ice/Mods/"
+        elif [ "$debiansteampath" = false ]; then
+            mv */ "$HOME/.local/share/Steam/steamapps/common/A Dance of Fire and Ice/Mods/"
+        fi
+    fi
+
+    if whiptail --title "Autoremove mods" --yesno "Do you want to remove the zipped mods (will also remove the directory created)" 8 78; then
+        # remove zipped mods
+        rm -rf $HOME/$modsdir
+    else
+        # dont remove
+        echo "Selected no, keeping the directory"
+    fi
+    
+elif [ "$1" = "--createalias" ]; then
+    check_umm
+    usershell=$(basename "$SHELL")
+    echo "Creating an alias (for launching umm)"
+    if [ "$usershell" = "bash" ]; then
+        echo "Bash detected"
+        echo "alias umm='mono $HOME/$ummdir/UnityModManagerInstaller/UnityModManager.exe'" >> "$HOME/.bashrc"
+        source $HOME/.bashrc
+        echo "Alias created!"
+    elif [ "$usershell" = "zsh" ]; then
+        echo "Zsh detected"
+        echo "alias umm='mono $HOME/$ummdir/UnityModManagerInstaller/UnityModManager.exe'" >> "$HOME/.zshrc"
+        echo "Alias created!"
+    elif [ "$usershell" = "fish" ]; then
+        echo "Fish detected"
+        echo "alias umm 'mono \$HOME/$ummdir/UnityModManagerInstaller/UnityModManager.exe'" >> "$HOME/.config/fish/config.fish"
+        echo "Alias created!"
+    else
+        echo "Unrecognizable shell, skipping..."
+    fi
+elif [ "$1" = "--createsymlink" ]; then
+    check_adofai
+    echo "Creating Symlink..."
+    if [ -d "$HOME/.steam/debian-installation/steamapps/common" ]; then
+        debiansteampath=true
+    elif [ -d "$HOME/.local/share/Steam/steamapps/common" ]; then
+        debiansteampath=false
+    fi
+
+    if [ "$debiansteampath" = true ]; then
+    echo "Using Debian steam path"
+    else 
+    echo "Using normal steam path"
+    fi
+
+    if [ "$adofai_exists" == true ]; then
+        if [ "$debiansteampath" = true ]; then
+            ln -s "$HOME/.steam/debian-installation/steamapps/common/A Dance of Fire and Ice/" ~/
+        elif [ "$debiansteampath" = false ]; then
+            ln -s "$HOME/.local/share/Steam/steamapps/common/A Dance of Fire and Ice/" ~/
+        fi
+    fi
+    echo "Symlink Created!"
+    echo "Now you can access it through UMM, it should be located at Personal > A Dance of Fire and Ice"
+elif [ "$1" = "--modinfo" ]; then
+    if [ "$2" = "AdofaiTweaks" ]; then
+        echo "- AdofaiTweaks"
+        echo "Includes a bunch of miscellaneous tweaks like changing the planet colors, opacity"
+        echo "hiding certain UI elements, hiding perfect judgements, limiting judgements you can get"
+        echo "Basically all-in-one mod, very highly recommended"
+    elif [ "$2" = "KeyboardChatterBlocker" ]; then
+        echo "- KeyboardChatterBlocker"
+        echo "Blocks chatter that you keyboard generates to prevent extra inputs that never"
+        echo "happened, very highly recommended"
+    elif [ "$2" = "Keyviewer" ]; then
+        echo "- Keyviewer"
+        echo "Shows which keys you're pressing at the moment, very customizable, highly recommended"
+    elif [ "$2" = "Overlayer" ]; then
+        echo "- Overlayer"
+        echo "Displays additional information like accuracy, progress, lenght of the chart and other,"
+        echo "very customizable, recommended"
+    elif [ "$2" = "Overlayer.Scripting" ]; then
+        echo "- Overlayer.Scripting"
+        echo "Allows you to write .js scripts and use them to display various information that"
+        echo "overlayer can't display by default, optional"
+    elif [ "$2" = "EnhancedEffectRemover" ]; then
+        echo "- EnhancedEffectRemover"
+        echo "Removes effect from charts, allows to customize which effects are removed and which are kept,"
+        echo "optional"
+    elif [ "$2" = "BetterCalibration" ]; then
+        echo "- BetterCalibration"
+        echo "Allows you to calibrate when failing a chart and set the correct offset,"
+        echo "somewhat recommended"
+    elif [ "$2" = "YoutubeStream" ]; then
+        echo "- YoutubeStream"
+        echo "Allows you to plau charts that download the song from YouTube instead of using a local .ogg file,"
+        echo "somewhat recommended"
+    elif [ "$2" = "Together" ]; then
+        echo "- Together"
+        echo "Multiplayer in ADOFAI, optional"
+    else
+        echo "Unknown mod: $2"
+    fi
+else
+    echo "ADOFAI Linux Mods Installer"
+    echo "created by avast_antivirus"
+    echo "Options:"
+    echo "adofailmi --installumm: Installs UnityModManager, dependencies, and adds additional configuration"
+    echo "(adding -s will skip dependency check and installation, use it when it installing/checking dependencies is broken,
+it will not skip steam or adofai checks and it will require manual installation of: mono, whiptail, unzip, wget)"
+    echo "adofailmi --installmods: Select and automatically install, unpack mods"
+    echo "adofailmi --createalias: Will create the 'umm' alias for easy launching"
+    echo "adofailmi --createsymlink: Necessary for installing UnityModManager"
+    echo "adofailmi --modinfo <mod>: Will display information about the specified mod"
+    echo "adofailmi --help: Displays this page"
+    echo "Supported distributions:"
+    echo "- Debian/Debian based"
+    echo "- Ubuntu/Ubuntu based"
+    echo "- RHEL/RHEL based (untested)"
+    echo "- Arch/Arch based (untested)"
+    echo "- OpenSuse/OpenSuse based (untested)"
+    echo "- Void Linux (untested)"
+    echo "- Gentoo Linux (untested)"
+    echo "more features will probably come in the future! :3"
+fi
